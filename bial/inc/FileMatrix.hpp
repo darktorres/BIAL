@@ -36,7 +36,7 @@ namespace Bial {
    * @warning none.
    */
   template< class D >
-  static void Write( const Matrix< D > &mtx, const std::string &filename );
+  static void WriteMatrix( const Matrix< D > &mtx, const std::string &filename );
 
   /**
    * @date 2015/Jun/09
@@ -47,12 +47,35 @@ namespace Bial {
    * @warning none.
    */
   template< class D >
-  static void WriteMatrix( const Matrix< D > &mtx, const std::string &filename );
+  static void Write( const Matrix< D > &mtx, const std::string &filename );
+
+  /**
+   * @date 2016/Nov/24
+   * @param filename: Name of the file conatining bmatrix image.
+   * @return The read bmatrix in a Image.
+   * @brief Reads bmatrix from file and return in Image.
+   * @warning none.
+   */
+  template< class D >
+  static Image< D > ReadMatrixImage( const std::string &filename );
+
+  /**
+   * @date 2016/Nov/24
+   * @param mtx: Input bmatrix image.
+   * @param filename: Name of the file conatining bmatrix.
+   * @return none.
+   * @brief Writes bmatrix image into file.
+   * @warning none.
+   */
+  template< class D >
+  static void WriteMatrixImage( const Image< D > &mtx, const std::string &filename );
 
 }
 
 /* Implementation --------------------------------------------------------------------------------------------------- */
 
+#include "Color.hpp"
+#include "ColorRGB.hpp"
 #include "File.hpp"
 
 namespace Bial {
@@ -70,7 +93,8 @@ namespace Bial {
       if( mgc_nbr == 5023 ) {
         COMMENT( "Reading dimension size.", 2 );
         Vector< int > size( 2 );
-        file.read( reinterpret_cast< char* >( &size[ 0 ] ), sizeof( int ) * 2 );
+        file.read( reinterpret_cast< char* >( &size[ 0 ] ), sizeof( int ) );
+        file.read( reinterpret_cast< char* >( &size[ 1 ] ), sizeof( int ) );
         COMMENT( "Read size: " << size, 2 );
         COMMENT( "Creating matrix.", 2 );
         Matrix< D > res( size );
@@ -171,14 +195,36 @@ namespace Bial {
 
   template< class D >
   void WriteMatrix( const Matrix< D > &mtx, const std::string &filename ) {
-    Write< D >( mtx, filename );
+    try {
+      Write< D >( mtx, filename );
+    }
+    catch( std::ios_base::failure &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "I/O error while writing to file." ) );
+      throw( std::ios_base::failure( msg ) );
+    }
+    catch( std::bad_alloc &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "Memory allocation error." ) );
+      throw( std::runtime_error( msg ) );
+    }
+    catch( std::runtime_error &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "Runtime error." ) );
+      throw( std::runtime_error( msg ) );
+    }
+    catch( const std::out_of_range &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "Out of range exception." ) );
+      throw( std::out_of_range( msg ) );
+    }
+    catch( const std::logic_error &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "Logic Error." ) );
+      throw( std::logic_error( msg ) );
+    }
   }
 
   template< class D >
   void Write( const Matrix< D > &mtx, const std::string &filename ) {
     try {
       COMMENT( "Insert here matrix type control.", 2 );
-      if( mtx.Dims( ) != 2 ) {
+      if( ( mtx.Dims( ) != 2 ) && ( ( mtx.Dims( ) != 3 ) && ( mtx.size( 2 ) != 1 ) ) ) {
         std::string msg( BIAL_ERROR( "Invalid number of dimensions. Expected 2." ) );
         throw( std::logic_error( msg ) );
       }
@@ -190,7 +236,8 @@ namespace Bial {
       int mgc_nbr = 5023;
       Vector< int > size( mtx.Dim( ) );
       file.write( reinterpret_cast< const char* >( &mgc_nbr ), sizeof( int ) );
-      file.write( reinterpret_cast< const char* >( &size[ 0 ] ), sizeof( int ) * 2 );
+      file.write( reinterpret_cast< const char* >( &size[ 0 ] ), sizeof( int ) );
+      file.write( reinterpret_cast< const char* >( &size[ 1 ] ), sizeof( int ) );
       COMMENT( "Getting maximum intensity.", 2 );
       D Imax = mtx.Maximum( );
       COMMENT( "Writing data.", 2 );
@@ -246,6 +293,116 @@ namespace Bial {
         file.write( reinterpret_cast< const char* >( &mtx( 0 ) ), sizeof( int ) * mtx.size( ) );
       }
       file.close( );
+    }
+    catch( std::ios_base::failure &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "I/O error while writing to file." ) );
+      throw( std::ios_base::failure( msg ) );
+    }
+    catch( std::bad_alloc &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "Memory allocation error." ) );
+      throw( std::runtime_error( msg ) );
+    }
+    catch( std::runtime_error &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "Runtime error." ) );
+      throw( std::runtime_error( msg ) );
+    }
+    catch( const std::out_of_range &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "Out of range exception." ) );
+      throw( std::out_of_range( msg ) );
+    }
+    catch( const std::logic_error &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "Logic Error." ) );
+      throw( std::logic_error( msg ) );
+    }
+  }
+
+
+  template< >
+  Image< Color > ReadMatrixImage( const std::string &filename ) {
+    try {
+      return( Image< Color >( ColorSpace::GraytoARGB< int >( ReadMatrix< int >( filename ) ) ) );
+    }
+    catch( std::ios_base::failure &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "I/O error while writing to file." ) );
+      throw( std::ios_base::failure( msg ) );
+    }
+    catch( std::bad_alloc &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "Memory allocation error." ) );
+      throw( std::runtime_error( msg ) );
+    }
+    catch( std::runtime_error &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "Runtime error." ) );
+      throw( std::runtime_error( msg ) );
+    }
+    catch( const std::out_of_range &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "Out of range exception." ) );
+      throw( std::out_of_range( msg ) );
+    }
+    catch( const std::logic_error &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "Logic Error." ) );
+      throw( std::logic_error( msg ) );
+    }
+  }
+
+  template< >
+  void WriteMatrixImage( const Image< Color > &mtx, const std::string &filename ) {
+    try {
+      Image< int > grayimg( ColorSpace::ARGBtoGraybyLuminosity< int >( mtx ) );
+      WriteMatrix( grayimg.DataMatrix( ), filename );
+    }
+    catch( std::ios_base::failure &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "I/O error while writing to file." ) );
+      throw( std::ios_base::failure( msg ) );
+    }
+    catch( std::bad_alloc &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "Memory allocation error." ) );
+      throw( std::runtime_error( msg ) );
+    }
+    catch( std::runtime_error &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "Runtime error." ) );
+      throw( std::runtime_error( msg ) );
+    }
+    catch( const std::out_of_range &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "Out of range exception." ) );
+      throw( std::out_of_range( msg ) );
+    }
+    catch( const std::logic_error &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "Logic Error." ) );
+      throw( std::logic_error( msg ) );
+    }
+  }
+
+  template< class D >
+  Image< D > ReadMatrixImage( const std::string &filename ) {
+    try {
+      return( Image< D >( ReadMatrix< D >( filename ) ) );
+    }
+    catch( std::ios_base::failure &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "I/O error while writing to file." ) );
+      throw( std::ios_base::failure( msg ) );
+    }
+    catch( std::bad_alloc &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "Memory allocation error." ) );
+      throw( std::runtime_error( msg ) );
+    }
+    catch( std::runtime_error &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "Runtime error." ) );
+      throw( std::runtime_error( msg ) );
+    }
+    catch( const std::out_of_range &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "Out of range exception." ) );
+      throw( std::out_of_range( msg ) );
+    }
+    catch( const std::logic_error &e ) {
+      std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "Logic Error." ) );
+      throw( std::logic_error( msg ) );
+    }
+  }
+
+  template< class D >
+  void WriteMatrixImage( const Image< D > &mtx, const std::string &filename ) {
+    try {
+      WriteMatrix( mtx.DataMatrix( ), filename );
     }
     catch( std::ios_base::failure &e ) {
       std::string msg( e.what( ) + std::string( "\n" ) + BIAL_ERROR( "I/O error while writing to file." ) );

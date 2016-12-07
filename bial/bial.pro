@@ -9,7 +9,9 @@ QT       -= core gui
 QMAKE_CXXFLAGS += -Wno-unused-function -Wno-unused-parameter \
 -I$$PWD/inc -I$$PWD/src -I$$PWD/lsh/inc -I$$PWD/SLIC/inc -I$$PWD/description/inc\
 -I$$PWD/cpplex/inc -I$$PWD/zlib -DREAL_FLOAT -DBIAL_$(basename $(notdir $(@)))
+QMAKE_CXXFLAGS_DEBUG += -DBIAL_DEBUG=1
 
+#-I$$PWD/SLIC/inc
 
 win32{
 QMAKE_CXXFLAGS += -fopenmp
@@ -143,7 +145,6 @@ HEADERS += \
     inc/Feature.hpp \
     inc/FeaturePathFunction.hpp \
     inc/FeatureResize.hpp \
-    inc/FFmpegIO.hpp \
     inc/File.hpp \
     inc/FileBMP.hpp \
     inc/FileDicom.hpp \
@@ -338,7 +339,6 @@ SOURCES += \
     src/Feature.cpp \
     src/FeaturePathFunction.cpp \
     src/FeatureResize.cpp \
-    src/FFmpegIO.cpp \
     src/File.cpp \
     src/FileFeature.cpp \
     src/FileSignal.cpp \
@@ -470,6 +470,11 @@ SOURCES += \
 
 DISTFILES += \
     uncrustify.cfg
+
+#TODO: Verify if FFMPEG is available
+#HEADERS += inc/FFmpegIO.hpp
+#SOURCES += src/FFmpegIO.cpp
+
 
 ## INSTALL LIBRARY
 headersDataFiles.path = $$[QT_INSTALL_HEADERS]/bial/
